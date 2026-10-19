@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game: Bậc Thầy Cân Bằng Oxy Hóa Khử</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdfa; /* Nền xanh mint nhẹ nhàng */
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Avatar Gradient Colors */
+        .bg-colinh { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+        .bg-nam { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .bg-lan { background: linear-gradient(135deg, #10b981, #059669); }
+
+        .text-colinh { color: #e11d48; }
+        .text-nam { color: #1d4ed8; }
+        .text-lan { color: #047857; }
+
+        /* Equation Input Style */
+        .coef-input {
+            width: 3rem; /* Tăng kích thước lên 48px để dễ bấm trên điện thoại */
+            height: 3rem;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.5rem;
+            margin: 0 0.25rem;
+            transition: all 0.2s;
+            -webkit-appearance: none; /* Sửa lỗi hiển thị trên iOS */
+            -moz-appearance: textfield;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .coef-input::-webkit-outer-spin-button,
+        .coef-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .coef-input:focus {
+            outline: none;
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        /* Thanh cuộn ngang tùy chỉnh cho vùng phương trình */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: #ef4444 !important;
+            color: #ef4444;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+        }
+        .xp-float {
+            position: absolute;
+            color: #10b981;
+            font-weight: 800;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 50;
+        }
+
+        /* Formula styling */
+        .formula {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-teal-50">
+
+    <!-- Header (Always visible during gameplay) -->
+    <header id="game-header" class="bg-white shadow-sm px-4 py-3 sticky top-0 z-10 justify-between items-center hidden">
+        <div class="flex flex-col">
+            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Cấp độ</span>
+            <span class="text-lg font-bold text-teal-700">Câu <span id="level-indicator">1</span>/5</span>
+        </div>
+        <div class="flex flex-col items-end">
+            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Kinh nghiệm</span>
+            <span class="text-lg font-black text-amber-500 flex items-center gap-1">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                <span id="xp-counter">0</span> XP
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow w-full max-w-2xl mx-auto flex flex-col relative">
+
+        <!-- START SCREEN -->
+        <div id="screen-start" class="flex-grow flex flex-col items-center justify-center px-6 py-12">
+            <div class="w-24 h-24 rounded-full bg-teal-100 flex items-center justify-center mb-6 shadow-inner">
+                <span class="text-5xl">🧪</span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-800 text-center mb-4">Cân Bằng<br><span class="text-teal-600">Oxy Hóa Khử</span></h1>
+            <p class="text-center text-slate-600 mb-8 font-medium">Luyện tập cân bằng 5 phương trình hóa học trọng tâm. Bạn đã sẵn sàng thu thập XP chưa?</p>
+            
+            <button onclick="startGame()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-teal-500/30 transition-transform active:scale-95">
+                BẮT ĐẦU CHƠI
+            </button>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="screen-game" class="hidden flex-grow flex-col p-4 pb-24">
+            
+            <!-- Dialogue Area -->
+            <div id="dialogue-box" class="bg-white rounded-2xl p-4 shadow-sm mb-6 flex gap-4 border border-slate-100">
+                <div id="char-avatar" class="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    L
+                </div>
+                <div>
+                    <h3 id="char-name" class="font-bold text-sm mb-1 uppercase tracking-wide">Cô Linh</h3>
+                    <p id="char-text" class="text-slate-700 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- Equation Area (Scrollable Horizontally for Mobile) -->
+            <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-100 mb-6 relative w-full overflow-hidden">
+                <!-- Floating XP anchor -->
+                <div id="xp-anchor" class="absolute top-0 right-1/2"></div>
+                
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Phương trình hóa học</h2>
+                
+                <!-- Horizontal Scroll Container -->
+                <div class="w-full overflow-x-auto pb-4 custom-scrollbar snap-x touch-pan-x">
+                    <div class="flex items-center min-w-max px-2 gap-2" id="full-equation-area">
+                        <!-- Reactants -->
+                        <div id="reactants-area" class="flex items-center gap-1">
+                            <!-- Injected via JS -->
+                        </div>
+                        
+                        <!-- Arrow -->
+                        <div class="mx-2 text-teal-500 shrink-0 flex items-center">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </div>
+
+                        <!-- Products -->
+                        <div id="products-area" class="flex items-center gap-1">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="mt-auto">
+                <button id="btn-check" onclick="checkAnswer()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-teal-500/30 transition-transform active:scale-95">
+                    KIỂM TRA
+                </button>
+            </div>
+            
+            <!-- Hint message -->
+            <p id="hint-msg" class="text-center text-rose-500 font-medium mt-4 h-6 opacity-0 transition-opacity"></p>
+        </div>
+
+        <!-- END SCREEN -->
+        <div id="screen-end" class="hidden flex-grow flex-col items-center justify-center px-6 py-12">
+            <div class="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center mb-6 shadow-inner relative">
+                <span class="text-5xl">🏆</span>
+                <div class="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">Hoàn thành</div>
+            </div>
+            
+            <h1 class="text-3xl font-extrabold text-slate-800 text-center mb-2">Tuyệt Vời!</h1>
+            
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 w-full text-center mb-8 mt-4">
+                <p class="text-slate-500 font-medium mb-2">Tổng điểm kinh nghiệm:</p>
+                <div class="text-5xl font-black text-amber-500 drop-shadow-sm">+<span id="final-xp">500</span> XP</div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-4 border border-rose-100 mb-8 text-left w-full relative overflow-hidden">
+                <div class="absolute w-2 h-full bg-rose-400 left-0 top-0"></div>
+                <div class="w-12 h-12 rounded-full bg-colinh flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-sm ml-2">
+                    L
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm mb-1 text-rose-600 uppercase tracking-wide">Cô Linh</h3>
+                    <p class="text-slate-700">Chúc mừng các em đã xuất sắc vượt qua cả 5 phương trình oxy hóa khử! Hãy giữ vững phong độ này nhé các Dược sĩ tương lai!</p>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-lg py-4 rounded-xl shadow-lg transition-transform active:scale-95">
+                CHƠI LẠI
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Success Modal Overlay -->
+    <div id="success-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-[90%] transform scale-90 transition-transform duration-300" id="success-modal-content">
+            <div class="w-16 h-16 rounded-full bg-green-100 text-green-500 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-center text-slate-800 mb-2">Chính Xác!</h3>
+            <p class="text-center text-slate-600 mb-6">Bạn nhận được <span class="font-bold text-amber-500">+100 XP</span></p>
+            <button onclick="nextLevel()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-md transition-transform active:scale-95">
+                TIẾP TỤC ➔
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game Data Configuration
+        const equations = [
+            {
+                reactants: [{ label: "KMnO<sub>4</sub>", ans: 2 }, { label: "HCl", ans: 16 }],
+                products: [{ label: "KCl", ans: 2 }, { label: "MnCl<sub>2</sub>", ans: 2 }, { label: "Cl<sub>2</sub>", ans: 5 }, { label: "H<sub>2</sub>O", ans: 8 }],
+                charName: "Cô Linh",
+                charInit: "L",
+                charColor: "bg-colinh text-colinh",
+                dialogue: "Chào các em! Chúng ta bắt đầu với một phản ứng kinh điển của thuốc tím. Hãy cẩn thận xác định chất nhường và nhận electron nhé!"
+            },
+            {
+                reactants: [{ label: "Cu", ans: 3 }, { label: "HNO<sub>3</sub>", ans: 8 }],
+                products: [{ label: "Cu(NO<sub>3</sub>)<sub>2</sub>", ans: 3 }, { label: "NO", ans: 2 }, { label: "H<sub>2</sub>O", ans: 4 }],
+                charName: "Nam",
+                charInit: "N",
+                charColor: "bg-nam text-nam",
+                dialogue: "Đồng tác dụng với HNO3 loãng sinh ra khí NO. Cô đã dạy phương pháp ion-electron phần này rồi, câu này mình làm được!"
+            },
+            {
+                reactants: [{ label: "K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub>", ans: 1 }, { label: "FeSO<sub>4</sub>", ans: 6 }, { label: "H<sub>2</sub>SO<sub>4</sub>", ans: 7 }],
+                products: [{ label: "K<sub>2</sub>SO<sub>4</sub>", ans: 1 }, { label: "Cr<sub>2</sub>(SO<sub>4</sub>)<sub>3</sub>", ans: 1 }, { label: "Fe<sub>2</sub>(SO<sub>4</sub>)<sub>3</sub>", ans: 3 }, { label: "H<sub>2</sub>O", ans: 7 }],
+                charName: "Lan",
+                charInit: "L",
+                charColor: "bg-lan text-lan",
+                dialogue: "Ôi, K2Cr2O7 cồng kềnh quá. Nhưng không sao, chỉ cần nhớ Cr từ +6 về +3, và Fe từ +2 lên +3 là cân bằng được ngay!"
+            },
+            {
+                reactants: [{ label: "P", ans: 3 }, { label: "HNO<sub>3</sub>", ans: 5 }, { label: "H<sub>2</sub>O", ans: 2 }],
+                products: [{ label: "H<sub>3</sub>PO<sub>4</sub>", ans: 3 }, { label: "NO", ans: 5 }],
+                charName: "Nam",
+                charInit: "N",
+                charColor: "bg-nam text-nam",
+                dialogue: "Photpho tác dụng với acid nitric... Ơ kìa, có thêm nước ở chất tham gia nữa. Mọi người chú ý cân bằng Oxi và Hydro cuối cùng nhé."
+            },
+            {
+                reactants: [{ label: "Zn", ans: 4 }, { label: "H<sub>2</sub>SO<sub>4</sub>", ans: 5 }],
+                products: [{ label: "ZnSO<sub>4</sub>", ans: 4 }, { label: "H<sub>2</sub>S", ans: 1 }, { label: "H<sub>2</sub>O", ans: 4 }],
+                charName: "Cô Linh",
+                charInit: "L",
+                charColor: "bg-colinh text-colinh",
+                dialogue: "Phản ứng cuối cùng rồi! Kẽm khử H2SO4 đặc xuống H2S (Lưu huỳnh -2). Cố lên các tân Dược sĩ!"
+            }
+        ];
+
+        let currentLevel = 0;
+        let xp = 0;
+        let isModalOpen = false;
+
+        // Thay thế cơ chế .active bằng việc thêm/xóa class 'hidden' và 'flex'
+        function startGame() {
+            // Hide Start Screen
+            const startScreen = document.getElementById('screen-start');
+            startScreen.classList.add('hidden');
+            startScreen.classList.remove('flex');
+            
+            // Show Game Screen & Header
+            const gameScreen = document.getElementById('screen-game');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+            
+            const header = document.getElementById('game-header');
+            header.classList.remove('hidden');
+            header.classList.add('flex');
+            
+            loadLevel(0);
+        }
+
+        // Load specific level
+        function loadLevel(levelIndex) {
+            const data = equations[levelIndex];
+            
+            // Update Header
+            document.getElementById('level-indicator').innerText = levelIndex + 1;
+            
+            // Update Dialogue
+            document.getElementById('char-name').innerText = data.charName;
+            document.getElementById('char-text').innerText = data.dialogue;
+            
+            const avatar = document.getElementById('char-avatar');
+            avatar.innerText = data.charInit;
+            avatar.className = `w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-sm ${data.charColor.split(' ')[0]}`;
+            
+            document.getElementById('char-name').className = `font-bold text-sm mb-1 uppercase tracking-wide ${data.charColor.split(' ')[1]}`;
+
+            // Re-trigger dialogue animation
+            const dBox = document.getElementById('dialogue-box');
+            dBox.classList.remove('pop-in');
+            void dBox.offsetWidth; // trigger reflow
+            dBox.classList.add('pop-in');
+
+            // Render Equation Inputs - Optimized for horizontal scrolling
+            const renderParts = (parts, prefix) => {
+                return parts.map((part, index) => {
+                    const isLast = index === parts.length - 1;
+                    return `
+                        <div class="flex items-center shrink-0">
+                            <input type="number" inputmode="numeric" pattern="[0-9]*" id="${prefix}-${index}" class="coef-input" min="1" max="99" placeholder="1">
+                            <span class="formula text-slate-800 text-lg ml-1">${part.label}</span>
+                            ${!isLast ? '<span class="mx-2 text-slate-400 font-bold text-xl">+</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            document.getElementById('reactants-area').innerHTML = renderParts(data.reactants, 'react');
+            document.getElementById('products-area').innerHTML = renderParts(data.products, 'prod');
+
+            // Clear hints
+            document.getElementById('hint-msg').style.opacity = '0';
+        }
+
+        // Check Answer
+        function checkAnswer() {
+            if(isModalOpen || currentLevel >= equations.length) return;
+
+            const data = equations[currentLevel];
+            let isCorrect = true;
+            const elementsToShake = [];
+
+            // Helper to check parts (Default blank/0 -> 1)
+            const checkParts = (parts, prefix) => {
+                parts.forEach((part, index) => {
+                    const el = document.getElementById(`${prefix}-${index}`);
+                    const rawVal = el.value.trim();
+                    const val = (rawVal === '' || parseInt(rawVal) === 0) ? 1 : parseInt(rawVal);
+                    
+                    if (val !== part.ans) {
+                        isCorrect = false;
+                        elementsToShake.push(el);
+                    } else {
+                        el.classList.remove('shake');
+                    }
+                });
+            };
+
+            checkParts(data.reactants, 'react');
+            checkParts(data.products, 'prod');
+
+            if (isCorrect) {
+                handleSuccess();
+            } else {
+                handleError(elementsToShake);
+            }
+        }
+
+        function handleSuccess() {
+            // Update XP
+            xp += 100;
+            animateXPCount(xp - 100, xp);
+            
+            // Show floating +100
+            const anchor = document.getElementById('xp-anchor');
+            const floatEl = document.createElement('div');
+            floatEl.className = 'xp-float';
+            floatEl.innerText = '+100 XP';
+            anchor.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1000);
+
+            // Open Success Modal
+            isModalOpen = true;
+            const modal = document.getElementById('success-modal');
+            const content = document.getElementById('success-modal-content');
+            modal.classList.remove('hidden');
+            // Trigger transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-90');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function handleError(elementsToShake) {
+            elementsToShake.forEach(el => {
+                el.classList.remove('shake');
+                void el.offsetWidth; // reflow
+                el.classList.add('shake');
+            });
+
+            const hint = document.getElementById('hint-msg');
+            hint.innerText = "Hệ số chưa chính xác. Đếm kỹ lại nguyên tử Oxy và electron trao đổi nhé!";
+            hint.style.opacity = '1';
+        }
+
+        // Animate XP Counter
+        function animateXPCount(start, end) {
+            const duration = 500;
+            const startTime = performance.now();
+            const counter = document.getElementById('xp-counter');
+
+            function update(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                counter.innerText = Math.floor(start + (end - start) * progress);
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        // Proceed to next level
+        function nextLevel() {
+            const modal = document.getElementById('success-modal');
+            if (modal.classList.contains('opacity-0')) return; // Prevent double click bugs
+            const content = document.getElementById('success-modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-90');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                isModalOpen = false;
+                
+                currentLevel++;
+                if (currentLevel < equations.length) {
+                    loadLevel(currentLevel);
+                } else {
+                    showEndScreen();
+                }
+            }, 300);
+        }
+
+        function showEndScreen() {
+            // Hide Game Screen & Header safely
+            const gameScreen = document.getElementById('screen-game');
+            gameScreen.classList.add('hidden');
+            gameScreen.classList.remove('flex');
+            
+            const header = document.getElementById('game-header');
+            header.classList.add('hidden');
+            header.classList.remove('flex');
+            
+            // Show End Screen
+            const endScreen = document.getElementById('screen-end');
+            endScreen.classList.remove('hidden');
+            endScreen.classList.add('flex');
+            
+            // Animate final XP
+            const finalXpEl = document.getElementById('final-xp');
+            finalXpEl.innerText = '0';
+            let current = 0;
+            const target = xp;
+            const timer = setInterval(() => {
+                current += 20;
+                if(current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                finalXpEl.innerText = current;
+            }, 30);
+        }
+
+    </script>
+</body>
+</html>
